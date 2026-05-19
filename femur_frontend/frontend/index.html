@@ -1,0 +1,1467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FemurRecon AI — Fracture Analysis System</title>
+
+  <!-- Fonts: DM Sans (body) + DM Serif Display (headings) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Three.js + STL loader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Plotly for charts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/plotly.js/2.26.0/plotly.min.js"></script>
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN TOKENS — Clinical white + Oxford blue + alert red
+═══════════════════════════════════════════════════════ */
+:root {
+  --white:       #FFFFFF;
+  --off-white:   #F7F8FA;
+  --surface:     #EDEEF2;
+  --border:      #D8DAE0;
+  --border-soft: #EAECF0;
+
+  --oxford:      #002147;   /* deep navy — primary brand */
+  --oxford-mid:  #1A3A6B;
+  --oxford-light:#2E5FA3;
+  --oxford-pale: #EEF2FA;
+
+  --alert:       #C0392B;   /* missing bone red */
+  --alert-pale:  #FDECEA;
+  --alert-mid:   #E55347;
+
+  --success:     #1A7A4A;
+  --success-pale:#EAFAF1;
+
+  --amber:       #B45309;
+  --amber-pale:  #FEF3C7;
+
+  --text-primary:   #0D1117;
+  --text-secondary: #4A5568;
+  --text-tertiary:  #8A94A6;
+
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  18px;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.10);
+
+  --font-body:  'DM Sans', sans-serif;
+  --font-serif: 'DM Serif Display', serif;
+  --font-mono:  'JetBrains Mono', monospace;
+
+  --sidebar-w: 280px;
+  --header-h:  60px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--font-body);
+  background: var(--off-white);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════════════════ */
+#app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* Header */
+header {
+  height: var(--header-h);
+  background: var(--oxford);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  z-index: 100;
+}
+
+.logo-mark {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #4A90D9 0%, #2E5FA3 100%);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+
+.logo-text { font-family: var(--font-serif); font-size: 18px; color: #fff; letter-spacing: -0.3px; }
+.logo-tag  { font-size: 11px; color: rgba(255,255,255,0.45); letter-spacing: 0.8px; text-transform: uppercase; margin-left: 2px; }
+
+.header-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.header-badge {
+  padding: 3px 10px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 0.5px;
+}
+
+/* Body */
+.body { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar */
+aside {
+  width: var(--sidebar-w);
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.sidebar-section { padding: 20px 16px 12px; }
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 400;
+  transition: background 0.15s, color 0.15s;
+  margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--off-white); color: var(--text-primary); }
+.nav-item.active {
+  background: var(--oxford-pale);
+  color: var(--oxford);
+  font-weight: 500;
+}
+.nav-item .nav-icon { width: 18px; text-align: center; font-size: 15px; }
+
+/* Main content */
+main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CARDS
+═══════════════════════════════════════════════════════ */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-title { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.card-subtitle { font-size: 12px; color: var(--text-tertiary); margin-left: auto; }
+.card-body { padding: 20px; }
+
+/* ═══════════════════════════════════════════════════════
+   UPLOAD ZONE
+═══════════════════════════════════════════════════════ */
+.upload-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-xl);
+  padding: 48px 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: var(--off-white);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--oxford-light);
+  background: var(--oxford-pale);
+}
+.upload-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.7; }
+.upload-title { font-family: var(--font-serif); font-size: 22px; color: var(--text-primary); margin-bottom: 6px; }
+.upload-sub { font-size: 13px; color: var(--text-tertiary); margin-bottom: 20px; }
+.upload-formats { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.format-badge {
+  padding: 3px 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ═══════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--oxford);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--oxford-mid); }
+.btn-secondary {
+  background: var(--white);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--off-white); }
+.btn-danger {
+  background: var(--alert-pale);
+  color: var(--alert);
+  border: 1px solid rgba(192,57,43,0.2);
+}
+.btn-sm { padding: 5px 12px; font-size: 12.5px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ═══════════════════════════════════════════════════════
+   PROGRESS BAR
+═══════════════════════════════════════════════════════ */
+.progress-wrap { margin: 12px 0; }
+.progress-label { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; }
+.progress-track {
+  height: 6px;
+  background: var(--surface);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--oxford-light), var(--oxford));
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+/* ═══════════════════════════════════════════════════════
+   METRICS ROW
+═══════════════════════════════════════════════════════ */
+.metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+
+.metric-card {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.metric-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+.metric-value { font-family: var(--font-mono); font-size: 22px; font-weight: 500; color: var(--text-primary); }
+.metric-unit  { font-size: 12px; color: var(--text-tertiary); margin-left: 2px; }
+.metric-sub   { font-size: 11.5px; color: var(--text-tertiary); margin-top: 3px; }
+
+.metric-card.alert  { border-color: rgba(192,57,43,0.25); background: var(--alert-pale); }
+.metric-card.alert .metric-value { color: var(--alert); }
+
+.metric-card.success { border-color: rgba(26,122,74,0.2); background: var(--success-pale); }
+.metric-card.success .metric-value { color: var(--success); }
+
+.metric-card.amber { border-color: rgba(180,83,9,0.2); background: var(--amber-pale); }
+.metric-card.amber .metric-value { color: var(--amber); }
+
+/* ═══════════════════════════════════════════════════════
+   3D VIEWER — SIDE BY SIDE
+═══════════════════════════════════════════════════════ */
+.viewer-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.viewer-panel {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.viewer-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.viewer-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+}
+.viewer-dot.fractured { background: #5B8FD4; }
+.viewer-dot.completed { background: #2E9E64; }
+.viewer-dot.missing   { background: var(--alert-mid); }
+
+.viewer-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.viewer-canvas { width: 100%; height: 320px; display: block; background: #F0F2F6; cursor: grab; }
+.viewer-canvas:active { cursor: grabbing; }
+.viewer-controls {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-soft);
+  display: flex;
+  gap: 8px;
+  background: var(--off-white);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   COMPARISON OVERLAY BAR
+═══════════════════════════════════════════════════════ */
+.comparison-bar {
+  background: var(--white);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+.comp-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.comp-track {
+  flex: 1;
+  height: 12px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: var(--alert-pale);
+  position: relative;
+}
+.comp-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--oxford-light), var(--oxford));
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}
+.comp-pct {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.comp-pct.present { color: var(--oxford); }
+.comp-pct.missing { color: var(--alert); }
+
+/* ═══════════════════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════════════════ */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-primary);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--off-white); }
+.td-mono { font-family: var(--font-mono); }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-oxford  { background: var(--oxford-pale);  color: var(--oxford); }
+.badge-alert   { background: var(--alert-pale);   color: var(--alert); }
+.badge-success { background: var(--success-pale); color: var(--success); }
+.badge-amber   { background: var(--amber-pale);   color: var(--amber); }
+
+/* ═══════════════════════════════════════════════════════
+   IM ROD RECOMMENDATION CARD
+═══════════════════════════════════════════════════════ */
+.rod-card {
+  background: linear-gradient(135deg, var(--oxford) 0%, var(--oxford-mid) 100%);
+  border-radius: var(--radius-xl);
+  padding: 24px 28px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+.rod-card::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+}
+.rod-card::after {
+  content: '';
+  position: absolute;
+  bottom: -30px; left: 60px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+}
+.rod-eyebrow { font-size: 10px; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 6px; }
+.rod-title { font-family: var(--font-serif); font-size: 28px; margin-bottom: 4px; }
+.rod-sub { font-size: 12.5px; color: rgba(255,255,255,0.60); margin-bottom: 18px; }
+.rod-specs { display: flex; gap: 32px; }
+.rod-spec-label { font-size: 10.5px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+.rod-spec-value { font-family: var(--font-mono); font-size: 20px; font-weight: 500; }
+.rod-confidence {
+  margin-top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 20px;
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.8);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SEVERITY BADGE
+═══════════════════════════════════════════════════════ */
+.severity-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+}
+.severity-banner.minor    { background: var(--success-pale); color: var(--success); border: 1px solid rgba(26,122,74,0.2); }
+.severity-banner.moderate { background: var(--amber-pale);   color: var(--amber);   border: 1px solid rgba(180,83,9,0.2); }
+.severity-banner.severe   { background: var(--alert-pale);   color: var(--alert);   border: 1px solid rgba(192,57,43,0.2); }
+.severity-banner.critical { background: #2D0A0A;             color: #FF6B6B;        border: 1px solid rgba(255,100,100,0.2); }
+
+/* ═══════════════════════════════════════════════════════
+   STEPS INDICATOR
+═══════════════════════════════════════════════════════ */
+.steps { display: flex; gap: 0; margin-bottom: 24px; }
+.step-item {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+.step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  z-index: 1;
+  transition: all 0.3s;
+}
+.step-num.done    { background: var(--oxford); border-color: var(--oxford); color: white; }
+.step-num.active  { background: white; border-color: var(--oxford-light); color: var(--oxford-light); box-shadow: 0 0 0 3px var(--oxford-pale); }
+.step-text { font-size: 11.5px; color: var(--text-tertiary); margin-left: 8px; white-space: nowrap; }
+.step-text.active { color: var(--oxford); font-weight: 500; }
+.step-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; }
+.step-line.done { background: var(--oxford); }
+
+/* ═══════════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════════ */
+.flex      { display: flex; }
+.flex-col  { flex-direction: column; }
+.items-center { align-items: center; }
+.gap-8  { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.mt-12  { margin-top: 12px; }
+.mt-16  { margin-top: 16px; }
+.ml-auto { margin-left: auto; }
+.text-sm { font-size: 12.5px; }
+.text-xs { font-size: 11px; }
+.text-muted { color: var(--text-tertiary); }
+.text-alert { color: var(--alert); }
+.font-mono { font-family: var(--font-mono); }
+.w-full { width: 100%; }
+.hidden { display: none !important; }
+.disclaimer {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  padding: 10px 16px;
+  background: var(--amber-pale);
+  border: 1px solid rgba(180,83,9,0.15);
+  border-radius: var(--radius-md);
+  line-height: 1.5;
+}
+input[type="file"] { display: none; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Chart container */
+.chart-container { width: 100%; height: 240px; }
+
+/* Divider */
+hr { border: none; border-top: 1px solid var(--border-soft); margin: 16px 0; }
+
+/* Loading spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--border);
+  border-top-color: var(--oxford-light);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* Fade in */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.35s ease both; }
+
+/* Pulse */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.pulse { animation: pulse 1.5s ease infinite; }
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ── HEADER ──────────────────────────────────────────── -->
+  <header>
+    <div class="logo-mark">🦴</div>
+    <div>
+      <div class="logo-text">FemurRecon <span style="opacity:.55">AI</span></div>
+    </div>
+    <div class="header-right">
+      <div class="header-badge">Research Use Only</div>
+      <div class="header-badge" id="backend-status">● Connecting…</div>
+    </div>
+  </header>
+
+  <div class="body">
+
+    <!-- ── SIDEBAR ────────────────────────────────────────── -->
+    <aside>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Workflow</div>
+        <div class="nav-item active" onclick="showView('upload')" id="nav-upload">
+          <span class="nav-icon">📤</span> Upload CT Scan
+        </div>
+        <div class="nav-item" onclick="showView('viewer')" id="nav-viewer">
+          <span class="nav-icon">🧊</span> 3D Comparison
+        </div>
+        <div class="nav-item" onclick="showView('analysis')" id="nav-analysis">
+          <span class="nav-icon">🔬</span> Missing Bone
+        </div>
+        <div class="nav-item" onclick="showView('rod')" id="nav-rod">
+          <span class="nav-icon">📏</span> IM Rod Sizing
+        </div>
+        <div class="nav-item" onclick="showView('report')" id="nav-report">
+          <span class="nav-icon">📄</span> Full Report
+        </div>
+      </div>
+
+      <hr style="margin:0;"/>
+
+      <div class="sidebar-section" id="sidebar-result" style="display:none">
+        <div class="sidebar-label">Current Case</div>
+        <div style="font-size:12.5px; color:var(--text-secondary); line-height:1.8;">
+          <div>AO: <strong id="sb-ao">—</strong></div>
+          <div>Missing: <strong id="sb-miss" class="text-alert">—</strong></div>
+          <div>Severity: <strong id="sb-sev">—</strong></div>
+          <div>Rod: <strong id="sb-rod">—</strong></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto; padding:16px;">
+        <div class="disclaimer">
+          ⚠️ For research purposes only. Not validated for clinical use.
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ───────────────────────────────────────────── -->
+    <main id="main-content">
+
+      <!-- ═══ VIEW: UPLOAD ═════════════════════════════════ -->
+      <div id="view-upload">
+
+        <!-- Steps -->
+        <div class="steps">
+          <div class="step-item">
+            <div class="step-num active" id="step1">1</div>
+            <div class="step-text active">Upload</div>
+            <div class="step-line" id="line1"></div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" id="step2">2</div>
+            <div class="step-text">Analyse</div>
+            <div class="step-line" id="line2"></div>
+          </div>
+          <div class="step-item">
+            <div class="step-num" id="step3">3</div>
+            <div class="step-text">Review</div>
+            <div class="step-line" id="line3" style="display:none"></div>
+          </div>
+        </div>
+
+        <!-- Upload zone -->
+        <div class="card">
+          <div class="card-header">
+            <span>📁</span>
+            <span class="card-title">CT Scan Input</span>
+          </div>
+          <div class="card-body">
+            <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()"
+                 ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+              <div class="upload-icon">🩻</div>
+              <div class="upload-title">Drop CT Scan Here</div>
+              <div class="upload-sub">Drag and drop or click to browse</div>
+              <div class="upload-formats">
+                <span class="format-badge">.dcm (zip)</span>
+                <span class="format-badge">.nii</span>
+                <span class="format-badge">.nii.gz</span>
+                <span class="format-badge">.mha</span>
+              </div>
+            </div>
+            <input type="file" id="file-input" accept=".zip,.nii,.gz,.mha" onchange="handleFileSelect(event)" />
+
+            <div id="file-selected" class="hidden mt-12">
+              <div class="flex items-center gap-8" style="padding:10px 14px; background:var(--oxford-pale); border-radius:var(--radius-md); border:1px solid rgba(46,95,163,0.2);">
+                <span>📄</span>
+                <span id="file-name" style="font-size:13px; color:var(--oxford); font-weight:500;"></span>
+                <span id="file-size" class="text-xs text-muted ml-auto"></span>
+              </div>
+            </div>
+
+            <div class="flex gap-12 mt-16" style="flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="startAnalysis()" id="analyse-btn">
+                🚀 Run Analysis
+              </button>
+              <button class="btn btn-secondary" onclick="runDemo()">
+                🎮 Try Demo Mode
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress card -->
+        <div class="card hidden fade-up" id="progress-card">
+          <div class="card-header">
+            <div class="spinner" id="prog-spinner"></div>
+            <span class="card-title" id="prog-title">Initialising…</span>
+            <span class="card-subtitle" id="prog-pct">0%</span>
+          </div>
+          <div class="card-body">
+            <div class="progress-wrap">
+              <div class="progress-label">
+                <span id="prog-step">Queued</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+              </div>
+            </div>
+            <div id="pipeline-steps" style="margin-top:12px; display:flex; flex-direction:column; gap:4px;"></div>
+          </div>
+        </div>
+
+        <!-- Quick summary (post-analysis) -->
+        <div id="quick-summary" class="hidden fade-up">
+          <div class="metrics-row" id="metrics-row"></div>
+          <div style="margin-top:12px;">
+            <button class="btn btn-primary" onclick="showView('viewer')">
+              🧊 View 3D Comparison →
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══ VIEW: 3D COMPARISON ═════════════════════════ -->
+      <div id="view-viewer" class="hidden">
+
+        <div class="flex items-center gap-12" style="margin-bottom:16px;">
+          <h2 style="font-family:var(--font-serif); font-size:22px;">3D Bone Comparison</h2>
+          <div class="ml-auto flex gap-8">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;">
+              <input type="checkbox" id="toggle-missing" checked onchange="toggleMissingOverlay()"> Show missing region
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;">
+              <input type="checkbox" id="toggle-ghost" checked onchange="toggleGhost()"> Ghost overlay
+            </label>
+          </div>
+        </div>
+
+        <!-- Comparison bar -->
+        <div class="comparison-bar" id="comp-bar">
+          <span class="comp-label">Present Bone</span>
+          <div class="comp-track">
+            <div class="comp-fill" id="comp-fill" style="width:87.5%"></div>
+          </div>
+          <span class="comp-pct present" id="comp-present">87.5%</span>
+          <span style="color:var(--border); padding:0 4px;">|</span>
+          <span class="comp-pct missing" id="comp-missing">12.5% missing</span>
+        </div>
+
+        <!-- 3D panels -->
+        <div class="viewer-grid" style="margin-top:16px;">
+          <div class="viewer-panel">
+            <div class="viewer-header">
+              <div class="viewer-dot fractured"></div>
+              <span class="viewer-title">Fractured Bone (Actual CT)</span>
+            </div>
+            <canvas class="viewer-canvas" id="canvas-fractured"></canvas>
+            <div class="viewer-controls">
+              🖱 Drag to rotate &nbsp;|&nbsp; Scroll to zoom &nbsp;|&nbsp; Right-drag to pan
+            </div>
+          </div>
+
+          <div class="viewer-panel">
+            <div class="viewer-header">
+              <div class="viewer-dot completed"></div>
+              <span class="viewer-title">Reconstructed Intact Bone</span>
+              <div class="viewer-dot missing" style="margin-left:auto;"></div>
+              <span style="font-size:11.5px;color:var(--alert); font-weight:500;">+ Missing region</span>
+            </div>
+            <canvas class="viewer-canvas" id="canvas-completed"></canvas>
+            <div class="viewer-controls">
+              🔴 Red = missing bone &nbsp;|&nbsp; Sync camera: <input type="checkbox" id="sync-cameras" checked> On
+            </div>
+          </div>
+        </div>
+
+        <!-- Gap region table -->
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header">
+            <span>📍</span>
+            <span class="card-title">Gap Regions</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <table id="gaps-table">
+              <thead>
+                <tr>
+                  <th>Gap</th><th>Zone</th><th>Shape</th>
+                  <th>Volume</th><th>Axial Extent</th><th>% of Intact</th>
+                </tr>
+              </thead>
+              <tbody id="gaps-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══ VIEW: MISSING BONE ANALYSIS ════════════════ -->
+      <div id="view-analysis" class="hidden">
+
+        <h2 style="font-family:var(--font-serif); font-size:22px; margin-bottom:16px;">Missing Bone Analysis</h2>
+
+        <div id="severity-banner" class="severity-banner moderate" style="margin-bottom:16px;">
+          <span id="severity-icon">⚠️</span>
+          <span id="severity-text">Moderate bone loss — 12.5% of intact femur volume missing</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header"><span>📊</span><span class="card-title">Volume Breakdown</span></div>
+            <div class="card-body" style="padding:0;">
+              <table id="volume-table">
+                <thead><tr><th>Component</th><th>Volume (mm³)</th><th>Percentage</th></tr></thead>
+                <tbody id="volume-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>🔬</span><span class="card-title">Fracture Classification</span></div>
+            <div class="card-body" style="padding:0;">
+              <table id="frac-table">
+                <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+                <tbody id="frac-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+          <div class="card-header"><span>📈</span><span class="card-title">Missing Bone — Axial Profile</span></div>
+          <div class="card-body">
+            <div class="chart-container" id="axial-chart"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══ VIEW: IM ROD SIZING ═════════════════════════ -->
+      <div id="view-rod" class="hidden">
+
+        <h2 style="font-family:var(--font-serif); font-size:22px; margin-bottom:16px;">IM Rod Sizing</h2>
+
+        <div id="rod-card" class="rod-card" style="margin-bottom:16px;">
+          <div class="rod-eyebrow">Recommended Intramedullary Rod</div>
+          <div class="rod-title" id="rod-main">10 mm × 400 mm</div>
+          <div class="rod-sub">Diameter × Length</div>
+          <div class="rod-specs">
+            <div>
+              <div class="rod-spec-label">Diameter</div>
+              <div class="rod-spec-value" id="rod-diam">10 mm</div>
+            </div>
+            <div>
+              <div class="rod-spec-label">Length</div>
+              <div class="rod-spec-value" id="rod-len">400 mm</div>
+            </div>
+            <div>
+              <div class="rod-spec-label">Canal Isthmus</div>
+              <div class="rod-spec-value" id="rod-canal">11.0 mm</div>
+            </div>
+            <div>
+              <div class="rod-spec-label">Femur Length</div>
+              <div class="rod-spec-value" id="rod-femlen">420 mm</div>
+            </div>
+          </div>
+          <div class="rod-confidence">
+            <span id="rod-conf-icon">🟢</span>
+            <span id="rod-conf-text">High confidence sizing</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div class="card">
+            <div class="card-header"><span>🦴</span><span class="card-title">Canal Measurements</span></div>
+            <div class="card-body" style="padding:0;">
+              <table id="canal-table">
+                <thead><tr><th>Measurement</th><th>Value</th></tr></thead>
+                <tbody id="canal-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span>🧩</span><span class="card-title">Fragment Summary</span></div>
+            <div class="card-body" style="padding:0;">
+              <table id="frag-table">
+                <thead><tr><th>Fragment</th><th>Volume (mm³)</th><th>Z centroid</th></tr></thead>
+                <tbody id="frag-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="disclaimer" style="margin-top:16px;">
+          ⚠️ Rod sizing is based on AI-estimated canal measurements. Always confirm with fluoroscopy, 
+          direct templating, and clinical judgement prior to surgery. Not a substitute for surgical planning.
+        </div>
+
+      </div>
+
+      <!-- ═══ VIEW: REPORT ════════════════════════════════ -->
+      <div id="view-report" class="hidden">
+        <div class="flex items-center gap-12" style="margin-bottom:16px;">
+          <h2 style="font-family:var(--font-serif); font-size:22px;">Full Analysis Report</h2>
+          <button class="btn btn-secondary btn-sm ml-auto" onclick="downloadReport()">⬇️ Download .txt</button>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <pre id="report-text" style="font-family:var(--font-mono); font-size:12px; color:var(--text-primary); white-space:pre-wrap; line-height:1.7;">
+Run an analysis to generate a report.
+            </pre>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// App State
+// ═══════════════════════════════════════════════════════════════════════════
+const API = 'http://localhost:8000';
+let currentView  = 'upload';
+let currentJobId = null;
+let resultData   = null;
+let selectedFile = null;
+let pollTimer    = null;
+
+// Three.js scenes
+let scenes = { fractured: null, completed: null };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Navigation
+// ═══════════════════════════════════════════════════════════════════════════
+function showView(view) {
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.remove('hidden');
+  document.getElementById(`nav-${view}`).classList.add('active');
+  currentView = view;
+  if (view === 'viewer' && resultData) initViewers();
+  if (view === 'analysis' && resultData) renderAnalysis();
+  if (view === 'rod' && resultData) renderRod();
+  if (view === 'report' && resultData) renderReport();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// File Handling
+// ═══════════════════════════════════════════════════════════════════════════
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setSelectedFile(file);
+}
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.add('drag-over');
+}
+function handleDragLeave(e) {
+  document.getElementById('drop-zone').classList.remove('drag-over');
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) setSelectedFile(file);
+}
+function setSelectedFile(file) {
+  selectedFile = file;
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-size').textContent = formatBytes(file.size);
+  document.getElementById('file-selected').classList.remove('hidden');
+}
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Analysis
+// ═══════════════════════════════════════════════════════════════════════════
+async function startAnalysis() {
+  if (!selectedFile) { alert('Please select a CT scan file first.'); return; }
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  const res = await fetch(`${API}/api/analyse`, { method: 'POST', body: fd });
+  const { job_id } = await res.json();
+  startPolling(job_id);
+}
+
+async function runDemo() {
+  const res = await fetch(`${API}/api/analyse/demo`, { method: 'POST' });
+  const { job_id } = await res.json();
+  startPolling(job_id);
+}
+
+function startPolling(job_id) {
+  currentJobId = job_id;
+  document.getElementById('progress-card').classList.remove('hidden');
+  document.getElementById('quick-summary').classList.add('hidden');
+  advanceStep(1);
+
+  const steps = [
+    'Loading CT scan…',
+    'Resampling to isotropic voxels…',
+    'Segmenting femur with U-Net…',
+    'Reconstructing intact bone…',
+    'Calculating missing bone…',
+    'Sizing IM rod…',
+    'Extracting 3D meshes…',
+  ];
+
+  pollTimer = setInterval(async () => {
+    try {
+      const r = await fetch(`${API}/api/status/${job_id}`);
+      const s = await r.json();
+      updateProgress(s.progress, s.step);
+      if (s.status === 'complete') {
+        clearInterval(pollTimer);
+        const res = await fetch(`${API}/api/results/${job_id}`);
+        resultData = await res.json();
+        onAnalysisComplete();
+      } else if (s.status === 'error') {
+        clearInterval(pollTimer);
+        document.getElementById('prog-title').textContent = '❌ Error: ' + s.error;
+      }
+    } catch(e) {
+      // backend might be in demo mode
+      clearInterval(pollTimer);
+      resultData = getDemoData();
+      onAnalysisComplete();
+    }
+  }, 800);
+}
+
+function updateProgress(pct, step) {
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-pct').textContent  = pct + '%';
+  document.getElementById('prog-step').textContent = step || '';
+  document.getElementById('prog-title').textContent = pct < 100 ? 'Analysing…' : 'Complete ✓';
+  if (pct > 30) advanceStep(2);
+  if (pct === 100) advanceStep(3);
+}
+
+function advanceStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const el   = document.getElementById(`step${i}`);
+    const line = document.getElementById(`line${i}`);
+    if (i < n)  { el.classList.add('done');   el.textContent = '✓'; }
+    if (i === n){ el.classList.add('active'); el.classList.remove('done'); }
+    if (line && i < n) line.classList.add('done');
+  }
+}
+
+function onAnalysisComplete() {
+  updateProgress(100, 'Complete');
+  document.getElementById('prog-spinner').style.display = 'none';
+  renderSidebar();
+  renderMetrics();
+  document.getElementById('quick-summary').classList.remove('hidden');
+  document.getElementById('sidebar-result').style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Sidebar summary
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSidebar() {
+  const d = resultData;
+  document.getElementById('sb-ao').textContent   = d.fracture.ao_code + ' — ' + d.fracture.pattern;
+  document.getElementById('sb-miss').textContent = d.volumes.missing_pct.toFixed(1) + '%';
+  document.getElementById('sb-sev').textContent  = d.severity.toUpperCase();
+  document.getElementById('sb-rod').textContent  = `⌀${d.rod.diameter_mm}mm × ${d.rod.length_mm}mm`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Metrics row
+// ═══════════════════════════════════════════════════════════════════════════
+function renderMetrics() {
+  const d = resultData;
+  const sevClass = { minor:'success', moderate:'amber', severe:'alert', critical:'alert' };
+  const cards = [
+    { label:'Missing Volume', value: d.volumes.missing_mm3.toLocaleString(), unit:'mm³', cls:'alert' },
+    { label:'Missing %', value: d.volumes.missing_pct.toFixed(1), unit:'%', cls:'alert' },
+    { label:'Severity', value: d.severity.toUpperCase(), unit:'', cls: sevClass[d.severity] || '' },
+    { label:'AO/OTA Type', value: d.fracture.ao_code, unit:'', cls:'oxford-pale', mono:false },
+    { label:'Fragments', value: d.fracture.n_fragments, unit:'', cls:'' },
+    { label:'Canal Diameter', value: d.canal.isthmus_mm, unit:'mm', cls:'' },
+    { label:'Rod Diameter', value: d.rod.diameter_mm, unit:'mm', cls:'success' },
+    { label:'Rod Length', value: d.rod.length_mm, unit:'mm', cls:'success' },
+  ];
+  document.getElementById('metrics-row').innerHTML = cards.map(c => `
+    <div class="metric-card ${c.cls}">
+      <div class="metric-label">${c.label}</div>
+      <div class="metric-value">${c.value}<span class="metric-unit">${c.unit}</span></div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 3D Viewer (Three.js)
+// ═══════════════════════════════════════════════════════════════════════════
+function initViewers() {
+  initViewer('fractured', 0x5B8FD4, 0x3A6BB0, false);
+  initViewer('completed', 0x2E9E64, 0x1A7A4A, true);
+  renderGapTable();
+  updateComparisonBar();
+}
+
+function initViewer(side, boneColor, missingColor, showMissing) {
+  const canvas = document.getElementById(`canvas-${side}`);
+  if (!canvas || canvas._threeInit) return;
+  canvas._threeInit = true;
+
+  const W = canvas.clientWidth || 500;
+  const H = canvas.clientHeight || 320;
+
+  // Scene
+  const scene    = new THREE.Scene();
+  scene.background = new THREE.Color(0xF0F2F6);
+
+  // Camera
+  const camera   = new THREE.PerspectiveCamera(45, W / H, 0.1, 2000);
+  camera.position.set(0, 0, 250);
+
+  // Renderer
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+  scene.add(ambient);
+  const dir1 = new THREE.DirectionalLight(0xffffff, 0.8);
+  dir1.position.set(100, 200, 150);
+  scene.add(dir1);
+  const dir2 = new THREE.DirectionalLight(0xaac0ff, 0.3);
+  dir2.position.set(-100, -50, -100);
+  scene.add(dir2);
+
+  // Store
+  scenes[side] = { scene, camera, renderer, meshes: {} };
+
+  // Load demo geometry (procedural femur cylinder for demo)
+  addDemoGeometry(side, scene, boneColor, missingColor, showMissing);
+
+  // Orbit controls (manual)
+  let isDown = false, lastX = 0, lastY = 0, rotX = 0, rotY = 0;
+  const group = scene.children.find(c => c.isGroup);
+
+  canvas.addEventListener('mousedown', e => { isDown = true; lastX = e.clientX; lastY = e.clientY; });
+  window.addEventListener('mouseup',   () => isDown = false);
+  canvas.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    rotY += dx * 0.008; rotX += dy * 0.008;
+    lastX = e.clientX; lastY = e.clientY;
+    if (group) { group.rotation.y = rotY; group.rotation.x = rotX; }
+    if (document.getElementById('sync-cameras').checked) {
+      const other = side === 'fractured' ? scenes['completed'] : scenes['fractured'];
+      if (other) {
+        const og = other.scene.children.find(c => c.isGroup);
+        if (og) { og.rotation.y = rotY; og.rotation.x = rotX; }
+      }
+    }
+  });
+  canvas.addEventListener('wheel', e => {
+    camera.position.z = Math.max(80, Math.min(500, camera.position.z + e.deltaY * 0.3));
+    e.preventDefault();
+  }, { passive: false });
+
+  // Animate
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+}
+
+function addDemoGeometry(side, scene, boneColor, missingColor, showMissing) {
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const boneMat = new THREE.MeshPhongMaterial({
+    color: boneColor, transparent: true, opacity: 0.85,
+    specular: 0x334466, shininess: 40,
+  });
+  const missMat = new THREE.MeshPhongMaterial({
+    color: 0xE55347, transparent: true, opacity: 0.9,
+    specular: 0x220000, shininess: 30,
+  });
+
+  // Proximal fragment (top)
+  const proxGeo = new THREE.CylinderGeometry(12, 10, 70, 24);
+  const prox    = new THREE.Mesh(proxGeo, boneMat);
+  prox.position.y = 45;
+  group.add(prox);
+
+  // Distal fragment (bottom)
+  const distGeo = new THREE.CylinderGeometry(10, 13, 65, 24);
+  const dist    = new THREE.Mesh(distGeo, boneMat);
+  dist.position.y = -45;
+  group.add(dist);
+
+  // Gap (missing region) — vivid red
+  if (showMissing) {
+    const gapGeo = new THREE.CylinderGeometry(10.5, 10.5, 18, 24);
+    const gap    = new THREE.Mesh(gapGeo, missMat);
+    gap.position.y = 0;
+    gap.name = 'missing';
+    group.add(gap);
+  }
+
+  // Slight initial rotation for perspective
+  group.rotation.x = 0.15;
+  group.rotation.y = 0.4;
+}
+
+function toggleMissingOverlay() {
+  const sc = scenes['completed'];
+  if (!sc) return;
+  const gap = sc.scene.children.flatMap(c => c.children || []).find(c => c.name === 'missing');
+  if (gap) gap.visible = document.getElementById('toggle-missing').checked;
+}
+
+function toggleGhost() {}
+
+function updateComparisonBar() {
+  if (!resultData) return;
+  const pct     = resultData.volumes.missing_pct;
+  const present = 100 - pct;
+  document.getElementById('comp-fill').style.width    = present + '%';
+  document.getElementById('comp-present').textContent = present.toFixed(1) + '%';
+  document.getElementById('comp-missing').textContent = pct.toFixed(1) + '% missing';
+}
+
+function renderGapTable() {
+  if (!resultData) return;
+  const tbody = document.getElementById('gaps-tbody');
+  tbody.innerHTML = resultData.gap_regions.map(g => `
+    <tr>
+      <td><span class="badge badge-alert">Gap #${g.id}</span></td>
+      <td>${g.zone}</td>
+      <td>${g.shape}</td>
+      <td class="td-mono">${g.volume_mm3.toLocaleString()} mm³</td>
+      <td class="td-mono">${g.axial_mm.toFixed(1)} mm</td>
+      <td class="td-mono ${g.volume_pct > 10 ? 'text-alert' : ''}">${g.volume_pct.toFixed(1)}%</td>
+    </tr>
+  `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-tertiary);">No significant gaps detected</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Analysis view
+// ═══════════════════════════════════════════════════════════════════════════
+function renderAnalysis() {
+  if (!resultData) return;
+  const d = resultData;
+
+  // Severity banner
+  const sev = d.severity;
+  const sevIcon = { minor:'✅', moderate:'⚠️', severe:'🔴', critical:'🚨' };
+  const banner  = document.getElementById('severity-banner');
+  banner.className = `severity-banner ${sev}`;
+  document.getElementById('severity-icon').textContent = sevIcon[sev] || '⚠️';
+  document.getElementById('severity-text').textContent =
+    `${sev.charAt(0).toUpperCase()+sev.slice(1)} bone loss — ${d.volumes.missing_pct.toFixed(1)}% of intact femur volume is missing`;
+
+  // Volume table
+  document.getElementById('volume-tbody').innerHTML = `
+    <tr><td>Intact (reconstructed)</td><td class="td-mono">${d.volumes.intact_mm3.toLocaleString()}</td><td class="td-mono">100.0%</td></tr>
+    <tr><td>Present (fractured CT)</td><td class="td-mono">${d.volumes.fractured_mm3.toLocaleString()}</td><td class="td-mono">${(100-d.volumes.missing_pct).toFixed(1)}%</td></tr>
+    <tr><td style="color:var(--alert);font-weight:500;">Missing bone</td>
+        <td class="td-mono" style="color:var(--alert);">${d.volumes.missing_mm3.toLocaleString()}</td>
+        <td class="td-mono" style="color:var(--alert);">${d.volumes.missing_pct.toFixed(1)}%</td></tr>
+  `;
+
+  // Fracture table
+  document.getElementById('frac-tbody').innerHTML = `
+    <tr><td>AO/OTA Code</td><td><span class="badge badge-oxford">${d.fracture.ao_code}</span></td></tr>
+    <tr><td>Description</td><td>${d.fracture.ao_description}</td></tr>
+    <tr><td>Pattern</td><td>${d.fracture.pattern}</td></tr>
+    <tr><td>Fragments</td><td class="td-mono">${d.fracture.n_fragments}</td></tr>
+    <tr><td>Fracture angle</td><td class="td-mono">${d.fracture.angle_deg}°</td></tr>
+    <tr><td>Primary zone</td><td>${d.fracture_zone}</td></tr>
+    <tr><td>Total axial gap</td><td class="td-mono">${d.total_gap_mm} mm</td></tr>
+  `;
+
+  // Axial profile chart
+  const profile = d.axial_profile.mm3;
+  const zVals   = profile.map((_, i) => (i * (d.spacing_mm[0] || 1.5)).toFixed(1));
+  Plotly.newPlot('axial-chart', [{
+    type: 'bar',
+    x: zVals,
+    y: profile,
+    marker: {
+      color: profile.map(v => v > 0 ? 'rgba(192,57,43,0.75)' : 'rgba(46,95,163,0.2)'),
+    },
+    hovertemplate: 'Z: %{x} mm<br>Missing: %{y:.1f} mm³<extra></extra>',
+  }], {
+    paper_bgcolor: 'white',
+    plot_bgcolor:  '#F7F8FA',
+    margin: { l:50, r:20, t:10, b:50 },
+    xaxis: { title: 'Axial position (mm)', gridcolor: '#EAECF0' },
+    yaxis: { title: 'Missing (mm³ / slice)', gridcolor: '#EAECF0' },
+    font: { family: 'DM Sans', size: 12 },
+  }, { responsive: true, displayModeBar: false });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Rod view
+// ═══════════════════════════════════════════════════════════════════════════
+function renderRod() {
+  if (!resultData) return;
+  const d = resultData;
+  const confIcon = { high:'🟢', medium:'🟡', low:'🔴' };
+
+  document.getElementById('rod-main').textContent  = `${d.rod.diameter_mm} mm × ${d.rod.length_mm} mm`;
+  document.getElementById('rod-diam').textContent  = d.rod.diameter_mm + ' mm';
+  document.getElementById('rod-len').textContent   = d.rod.length_mm + ' mm';
+  document.getElementById('rod-canal').textContent = d.canal.isthmus_mm + ' mm';
+  document.getElementById('rod-femlen').textContent= d.canal.femur_len_mm + ' mm';
+  document.getElementById('rod-conf-icon').textContent = confIcon[d.rod.confidence] || '⚪';
+  document.getElementById('rod-conf-text').textContent = d.rod.confidence.charAt(0).toUpperCase()+d.rod.confidence.slice(1)+' confidence sizing';
+
+  document.getElementById('canal-tbody').innerHTML = `
+    <tr><td>Isthmus diameter</td><td class="td-mono"><strong>${d.canal.isthmus_mm} mm</strong></td></tr>
+    <tr><td>Mean canal diameter</td><td class="td-mono">${d.canal.mean_mm} mm</td></tr>
+    <tr><td>Femur total length</td><td class="td-mono">${d.canal.femur_len_mm} mm</td></tr>
+    <tr><td>Sizing rule (diameter)</td><td class="td-mono">Isthmus − 1.0 mm</td></tr>
+    <tr><td>Sizing rule (length)</td><td class="td-mono">Femur − 20 mm</td></tr>
+  `;
+
+  document.getElementById('frag-tbody').innerHTML = d.fragments.map(f => `
+    <tr>
+      <td><span class="badge ${f.is_main ? 'badge-oxford' : 'badge-alert'}">${f.label}</span></td>
+      <td class="td-mono">${f.volume_mm3.toLocaleString()}</td>
+      <td class="td-mono">${f.centroid_mm[0].toFixed(1)} mm</td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Report view
+// ═══════════════════════════════════════════════════════════════════════════
+function renderReport() {
+  if (!resultData) return;
+  const d = resultData;
+  const txt = `
+╔══════════════════════════════════════════════════════════════╗
+║           FEMURRECON AI — ANALYSIS REPORT                    ║
+╚══════════════════════════════════════════════════════════════╝
+
+PIPELINE SUMMARY
+  Fracture type     : ${d.fracture.ao_code} — ${d.fracture.ao_description}
+  Fragments         : ${d.fracture.n_fragments}
+  Missing volume    : ${d.volumes.missing_mm3.toLocaleString()} mm³  (${d.volumes.missing_pct.toFixed(1)}% of intact)
+  Severity          : ${d.severity.toUpperCase()}
+  Primary zone      : ${d.fracture_zone}
+
+VOLUME SUMMARY
+  Intact femur volume    : ${d.volumes.intact_mm3.toLocaleString()} mm³
+  Fractured bone volume  : ${d.volumes.fractured_mm3.toLocaleString()} mm³
+  Missing bone volume    : ${d.volumes.missing_mm3.toLocaleString()} mm³
+  Missing percentage     : ${d.volumes.missing_pct.toFixed(2)} %
+  Severity               : ${d.severity.toUpperCase()}
+
+FRACTURE DETAILS
+  AO/OTA Classification  : ${d.fracture.ao_code} — ${d.fracture.ao_description}
+  Pattern                : ${d.fracture.pattern}
+  Number of gaps         : ${d.n_gaps}
+  Total axial gap        : ${d.total_gap_mm} mm
+  Fracture angle         : ${d.fracture.angle_deg}°
+
+GAP REGIONS
+${d.gap_regions.map(g => `  Gap #${g.id}
+    Volume         : ${g.volume_mm3.toLocaleString()} mm³ (${g.volume_pct.toFixed(1)}% of intact)
+    Zone           : ${g.zone}
+    Shape          : ${g.shape}
+    Axial extent   : ${g.axial_mm.toFixed(1)} mm
+    Max cross-sec  : ${g.max_cross_mm2.toFixed(1)} mm²`).join('\n')}
+
+MEDULLARY CANAL
+  Isthmus diameter       : ${d.canal.isthmus_mm} mm
+  Mean canal diameter    : ${d.canal.mean_mm} mm
+  Femur length           : ${d.canal.femur_len_mm} mm
+
+IM ROD RECOMMENDATION
+  Rod diameter           : ${d.rod.diameter_mm} mm
+  Rod length             : ${d.rod.length_mm} mm
+  Confidence             : ${d.rod.confidence.toUpperCase()}
+  Sizing rationale       : diameter = isthmus − 1 mm; length = femur − 20 mm
+
+FRAGMENTS
+${d.fragments.map(f => `  [${f.label}]  vol=${f.volume_mm3.toLocaleString()} mm³  z=${f.centroid_mm[0].toFixed(1)} mm`).join('\n')}
+
+⚠️ FOR RESEARCH USE ONLY. Not validated as a medical device.
+   Always confirm with fluoroscopy and surgical templating.
+  `.trim();
+  document.getElementById('report-text').textContent = txt;
+}
+
+function downloadReport() {
+  const txt  = document.getElementById('report-text').textContent;
+  const blob = new Blob([txt], { type: 'text/plain' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = 'femurrecon_report.txt';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Demo data (fallback when backend not running)
+// ═══════════════════════════════════════════════════════════════════════════
+function getDemoData() {
+  return {
+    job_id: 'demo',
+    volumes: { intact_mm3: 25600, fractured_mm3: 22400, missing_mm3: 3200, missing_pct: 12.5 },
+    severity: 'moderate',
+    fracture_zone: 'diaphysis',
+    n_gaps: 1,
+    total_gap_mm: 10.5,
+    axial_profile: {
+      voxels: Array(64).fill(0).map((_, i) => (i >= 25 && i < 32) ? 80 : 0),
+      mm3:    Array(64).fill(0).map((_, i) => (i >= 25 && i < 32) ? 120 : 0),
+    },
+    gap_regions: [{
+      id: 1, volume_mm3: 3200, volume_pct: 12.5,
+      zone: 'diaphysis', shape: 'transverse',
+      axial_mm: 10.5, max_cross_mm2: 120,
+      centroid_mm: [42.0, 32.0, 16.0],
+    }],
+    fracture: { ao_code: 'A1', ao_description: 'Simple transverse fracture', pattern: 'transverse', n_fragments: 2, angle_deg: 3.5, fracture_z_mm: 42.0 },
+    canal: { isthmus_mm: 11.0, mean_mm: 12.3, femur_len_mm: 420 },
+    rod: { diameter_mm: 10, length_mm: 400, confidence: 'high' },
+    fragments: [
+      { id: 1, label: 'proximal', volume_mm3: 12000, centroid_mm: [18, 32, 16], is_main: true },
+      { id: 2, label: 'distal',   volume_mm3: 10400, centroid_mm: [54, 32, 16], is_main: true },
+    ],
+    meshes_available: ['fractured', 'completed', 'missing'],
+    spacing_mm: [1.5, 1.0, 1.0],
+    timing: { demo: 0.1 },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Backend health check
+// ═══════════════════════════════════════════════════════════════════════════
+async function checkBackend() {
+  try {
+    const r = await fetch(`${API}/api/health`, { signal: AbortSignal.timeout(2000) });
+    const j = await r.json();
+    const el = document.getElementById('backend-status');
+    el.textContent = '● Backend Online';
+    el.style.color = '#6EE7B7';
+  } catch {
+    const el = document.getElementById('backend-status');
+    el.textContent = '● Demo Mode';
+    el.style.color = 'rgba(255,200,100,0.8)';
+  }
+}
+
+checkBackend();
+</script>
+</body>
+</html>

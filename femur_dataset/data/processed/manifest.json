@@ -1,0 +1,238 @@
+{
+  "summary": {
+    "total_samples": 20,
+    "total_errors": 0,
+    "per_ao_code": {
+      "A2": 5,
+      "A3": 3,
+      "C1": 2,
+      "A1": 3,
+      "B2": 4,
+      "B1": 2,
+      "C2": 1
+    },
+    "mean_gap_mm": 17.57
+  },
+  "samples": [
+    {
+      "idx": 0,
+      "status": "ok",
+      "ao_code": "A2",
+      "fracture_type": "A2",
+      "gap_size_mm": 11.56,
+      "n_fragments": 2,
+      "femur_len_mm": 224.8,
+      "canal_mm": 17.76,
+      "path": "data\\processed\\sample_00000.npz"
+    },
+    {
+      "idx": 1,
+      "status": "ok",
+      "ao_code": "A3",
+      "fracture_type": "A3",
+      "gap_size_mm": 13.94,
+      "n_fragments": 2,
+      "femur_len_mm": 226.6,
+      "canal_mm": 13.36,
+      "path": "data\\processed\\sample_00001.npz"
+    },
+    {
+      "idx": 2,
+      "status": "ok",
+      "ao_code": "A3",
+      "fracture_type": "A3",
+      "gap_size_mm": 18.32,
+      "n_fragments": 2,
+      "femur_len_mm": 217.8,
+      "canal_mm": 12.12,
+      "path": "data\\processed\\sample_00002.npz"
+    },
+    {
+      "idx": 3,
+      "status": "ok",
+      "ao_code": "C1",
+      "fracture_type": "C1",
+      "gap_size_mm": 21.06,
+      "n_fragments": 3,
+      "femur_len_mm": 226.3,
+      "canal_mm": 13.84,
+      "path": "data\\processed\\sample_00003.npz"
+    },
+    {
+      "idx": 4,
+      "status": "ok",
+      "ao_code": "A2",
+      "fracture_type": "A2",
+      "gap_size_mm": 20.47,
+      "n_fragments": 2,
+      "femur_len_mm": 234.6,
+      "canal_mm": 15.48,
+      "path": "data\\processed\\sample_00004.npz"
+    },
+    {
+      "idx": 5,
+      "status": "ok",
+      "ao_code": "A1",
+      "fracture_type": "A1",
+      "gap_size_mm": 13.57,
+      "n_fragments": 2,
+      "femur_len_mm": 211.3,
+      "canal_mm": 13.18,
+      "path": "data\\processed\\sample_00005.npz"
+    },
+    {
+      "idx": 6,
+      "status": "ok",
+      "ao_code": "B2",
+      "fracture_type": "B2",
+      "gap_size_mm": 14.22,
+      "n_fragments": 4,
+      "femur_len_mm": 225.0,
+      "canal_mm": 15.0,
+      "path": "data\\processed\\sample_00006.npz"
+    },
+    {
+      "idx": 7,
+      "status": "ok",
+      "ao_code": "B1",
+      "fracture_type": "B1",
+      "gap_size_mm": 20.17,
+      "n_fragments": 3,
+      "femur_len_mm": 210.9,
+      "canal_mm": 16.94,
+      "path": "data\\processed\\sample_00007.npz"
+    },
+    {
+      "idx": 8,
+      "status": "ok",
+      "ao_code": "B2",
+      "fracture_type": "B2",
+      "gap_size_mm": 19.47,
+      "n_fragments": 4,
+      "femur_len_mm": 219.9,
+      "canal_mm": 14.5,
+      "path": "data\\processed\\sample_00008.npz"
+    },
+    {
+      "idx": 9,
+      "status": "ok",
+      "ao_code": "B1",
+      "fracture_type": "B1",
+      "gap_size_mm": 21.01,
+      "n_fragments": 3,
+      "femur_len_mm": 235.8,
+      "canal_mm": 14.84,
+      "path": "data\\processed\\sample_00009.npz"
+    },
+    {
+      "idx": 10,
+      "status": "ok",
+      "ao_code": "A2",
+      "fracture_type": "A2",
+      "gap_size_mm": 18.36,
+      "n_fragments": 2,
+      "femur_len_mm": 226.6,
+      "canal_mm": 12.14,
+      "path": "data\\processed\\sample_00010.npz"
+    },
+    {
+      "idx": 11,
+      "status": "ok",
+      "ao_code": "A2",
+      "fracture_type": "A2",
+      "gap_size_mm": 16.43,
+      "n_fragments": 2,
+      "femur_len_mm": 218.7,
+      "canal_mm": 14.16,
+      "path": "data\\processed\\sample_00011.npz"
+    },
+    {
+      "idx": 12,
+      "status": "ok",
+      "ao_code": "A1",
+      "fracture_type": "A1",
+      "gap_size_mm": 19.95,
+      "n_fragments": 2,
+      "femur_len_mm": 202.9,
+      "canal_mm": 12.64,
+      "path": "data\\processed\\sample_00012.npz"
+    },
+    {
+      "idx": 13,
+      "status": "ok",
+      "ao_code": "A3",
+      "fracture_type": "A3",
+      "gap_size_mm": 16.53,
+      "n_fragments": 2,
+      "femur_len_mm": 219.3,
+      "canal_mm": 14.24,
+      "path": "data\\processed\\sample_00013.npz"
+    },
+    {
+      "idx": 14,
+      "status": "ok",
+      "ao_code": "C1",
+      "fracture_type": "C1",
+      "gap_size_mm": 19.46,
+      "n_fragments": 3,
+      "femur_len_mm": 222.2,
+      "canal_mm": 15.88,
+      "path": "data\\processed\\sample_00014.npz"
+    },
+    {
+      "idx": 15,
+      "status": "ok",
+      "ao_code": "B2",
+      "fracture_type": "B2",
+      "gap_size_mm": 16.0,
+      "n_fragments": 4,
+      "femur_len_mm": 221.0,
+      "canal_mm": 16.86,
+      "path": "data\\processed\\sample_00015.npz"
+    },
+    {
+      "idx": 16,
+      "status": "ok",
+      "ao_code": "A2",
+      "fracture_type": "A2",
+      "gap_size_mm": 17.27,
+      "n_fragments": 2,
+      "femur_len_mm": 225.6,
+      "canal_mm": 17.48,
+      "path": "data\\processed\\sample_00016.npz"
+    },
+    {
+      "idx": 17,
+      "status": "ok",
+      "ao_code": "B2",
+      "fracture_type": "B2",
+      "gap_size_mm": 15.09,
+      "n_fragments": 4,
+      "femur_len_mm": 212.5,
+      "canal_mm": 13.32,
+      "path": "data\\processed\\sample_00017.npz"
+    },
+    {
+      "idx": 18,
+      "status": "ok",
+      "ao_code": "A1",
+      "fracture_type": "A1",
+      "gap_size_mm": 14.55,
+      "n_fragments": 2,
+      "femur_len_mm": 223.7,
+      "canal_mm": 14.48,
+      "path": "data\\processed\\sample_00018.npz"
+    },
+    {
+      "idx": 19,
+      "status": "ok",
+      "ao_code": "C2",
+      "fracture_type": "C2",
+      "gap_size_mm": 24.04,
+      "n_fragments": 5,
+      "femur_len_mm": 223.7,
+      "canal_mm": 12.28,
+      "path": "data\\processed\\sample_00019.npz"
+    }
+  ]
+}
