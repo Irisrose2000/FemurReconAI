@@ -11,7 +11,11 @@ GET  /api/health           Health check
 """
 
 from __future__ import annotations
+import sys
+from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parents[2]
+sys.path.append(str(BASE_DIR / "femur_reconstruction"))
 import io
 import json
 import os
@@ -22,7 +26,7 @@ import uuid
 import zipfile
 from pathlib import Path
 from typing import Dict, Optional
-
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, File, HTTPException, UploadFile, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -33,7 +37,8 @@ app = FastAPI(title="FemurRecon AI", version="1.0.0")
 # ── CORS — allow local React dev server ───────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
