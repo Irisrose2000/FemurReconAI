@@ -1,6 +1,8 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=200& section=header&text=FemurRecon%20AI&fontSize=48&fontColor=fff&animation=twinkling&fontAlignY=36&desc=3D%20Medical%20Image%20Segmentation%20%26%20Implant%20Planning&descAlignY=55&descSize=17" width="100%"/>
+# 🦴 FemurRecon AI
+### 3D Medical Image Segmentation & Implant Planning
+*Automated femur analysis powered by deep learning*
 
 </div>
 
@@ -95,7 +97,7 @@ Annotated 3D medical scans are extremely limited due to privacy regulations and 
 
 | Metric | Score |
 |---|---|
-| **Dice Score** | *0.95* |
+| **Dice Score** | *(add your value)* |
 | **IoU (Intersection over Union)** | *(add your value)* |
 
 ### Fracture Classification
@@ -188,18 +190,46 @@ FemurReconAI/
 
 ---
 
-## 👩‍💻 Author
+## 👩‍💻 Authors
+
+<table>
+<tr>
+<td align="center" width="25%">
 
 **Aleena Johnson**
-B.Tech AI & Data Science | Thrissur, Kerala
+B.Tech AI & Data Science
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/aleena-johnson-7639a9282)
 [![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat-square&logo=github&logoColor=white)](https://github.com/Irisrose2000)
+
+</td>
+<td align="center" width="25%">
+
+**Annlia Sunil**
+B.Tech AI & Data Science
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=flat-square&logo=github&logoColor=white)](https://github.com/Liadaisy)
+
+</td>
+<td align="center" width="25%">
+
+**Ann Mariya TM**
+B.Tech AI & Data Science
+
+</td>
+<td align="center" width="25%">
+
+**Ebin Steevans**
+B.Tech AI & Data Science
+
+</td>
+</tr>
+</table>
 
 ---
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=100&section=footer" width="100%"/>
+*B.Tech AI & Data Science | KTU-affiliated college, Thrissur, Kerala*
 
 </div>
