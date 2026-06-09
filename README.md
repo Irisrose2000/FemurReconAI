@@ -95,7 +95,7 @@ Annotated 3D medical scans are extremely limited due to privacy regulations and 
 
 | Metric | Score |
 |---|---|
-| **Dice Score** | *(add your value)* |
+| **Dice Score** | *0.95* |
 | **IoU (Intersection over Union)** | *(add your value)* |
 
 ### Fracture Classification
