@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=200&section=header&text=FemurRecon%20AI&fontSize=48&fontColor=fff&animation=twinkling&fontAlignY=36&desc=3D%20Medical%20Image%20Segmentation%20%26%20Implant%20Planning&descAlignY=55&descSize=17" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=12,20,24&height=200& section=header&text=FemurRecon%20AI&fontSize=48&fontColor=fff&animation=twinkling&fontAlignY=36&desc=3D%20Medical%20Image%20Segmentation%20%26%20Implant%20Planning&descAlignY=55&descSize=17" width="100%"/>
 
 </div>
 
